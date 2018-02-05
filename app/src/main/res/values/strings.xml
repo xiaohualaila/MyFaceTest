@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">MyFaceTest</string>
+    <string name="settingSp">spSetting</string>
+    <string name="usbKey">usbKey</string>
+    <string name="androidUsb">AUSB</string>
+</resources>
