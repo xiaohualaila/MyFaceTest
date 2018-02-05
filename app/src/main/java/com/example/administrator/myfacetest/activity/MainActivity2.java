@@ -94,7 +94,6 @@ public class MainActivity2 extends BaseActivity implements SurfaceHolder.Callbac
         mSurfaceView = holder.get(R.id.surfaceView);
         mGLSurfaceView = holder.get(R.id.glsurfaceView);
 
-
         startService(new Intent(this, Service2.class));
         mContext = this;
         initFace();
@@ -277,14 +276,12 @@ public class MainActivity2 extends BaseActivity implements SurfaceHolder.Callbac
         }
     }
 
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
         stopService(new Intent(this, Service2.class));
 
     }
-
 
     /**
      * 上传信息

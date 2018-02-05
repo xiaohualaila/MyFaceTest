@@ -67,11 +67,11 @@ public class Service2 extends Service implements UltralightCardListener, M1CardL
         rkGpioControlNative.init();
         onOpenConnectPort();
         //串口
-        openErWeiMa();
+
         ComA = new SerialControl();
+        openErWeiMa();
         DispQueue = new DispQueueThread();
         DispQueue.start();
-
         //身份证
         thread = new Thread(task);
         thread.start();
