@@ -95,7 +95,7 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
     DispQueueThread DispQueue;
 
     private Bitmap bitmap;
-    private int count = 0;
+
     private boolean  isCheckSuccess = false;
     @Override
     protected void initViews(ViewHolder holder, View root) {
@@ -161,6 +161,7 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
         mHelper = YuweiFaceHelper.getInstance(mContext);
         //0 为后置摄像头， 1为前置
         mHelper.detecterInit(0);
+        mHelper.getInstance(this);
     }
 
     @Override
@@ -248,6 +249,7 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
                     if (msg.arg1 == YuweiFaceHelper.MSG_EVENT_REG) {
                         isCanRegister = true;
                         mAFR_FSDKFace = (AFR_FSDKFace) msg.obj;
+
                             //调用人脸识别
                             startDetecter();
                     } else if (msg.arg1 == YuweiFaceHelper.MSG_EVENT_NO_FEATURE) {
@@ -352,7 +354,7 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
                                          }else {
                                              doFaceError();
                                          }
-                                           isRquest = false;
+
                                        }
                                    },4000);
                                }
@@ -360,7 +362,7 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
                                @Override
                                public void call(Throwable throwable) {
                                    doError();
-                                   isRquest = false;
+
                                }
                            }
                 );
@@ -416,7 +418,6 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
         public void onResourceReady(Bitmap resource, Transition<? super Bitmap> transition) {
             bitmap = resource;
             img_server.setImageBitmap(bitmap);
-            count = 0;
             idCardHandler.sendEmptyMessage(0);
         }
     };
@@ -442,6 +443,7 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
+                isRquest = false;
                 img_server.setImageResource(R.drawable.pic_bg);
                 flag_tag.setText("");
                 //变灯

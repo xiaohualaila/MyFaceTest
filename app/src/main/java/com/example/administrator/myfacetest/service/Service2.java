@@ -12,7 +12,6 @@ import com.decard.NDKMethod.BasicOper;
 import com.example.administrator.myfacetest.ConstUtils;
 import com.example.administrator.myfacetest.R;
 import com.example.administrator.myfacetest.Ticket;
-import com.example.administrator.myfacetest.activity.MainActivity;
 import com.example.administrator.myfacetest.rx.RxBus;
 import com.example.administrator.myfacetest.usbtest.ComBean;
 import com.example.administrator.myfacetest.usbtest.M1CardListener;
