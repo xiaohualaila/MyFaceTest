@@ -74,7 +74,7 @@ public class CommonThreeService extends Service implements UltralightCardListene
                     if (flag == 1) {//UltralightCard
                         if (uitralight) {
                             model.bt_seek_card(ConstUtils.BT_SEEK_CARD);
-                     //       Log.i("sss", ">>>>>>>>>>>>>>>>>>>>>>UltralightCard");
+                           Log.i("sss", ">>>>>>>>>>>>>>>>>>>>>>UltralightCard");
                             Thread.sleep(TIME);
                         } else {//M1
                             if (MDSEUtils.isSucceed(BasicOper.dc_card_hex(1))) {
@@ -82,7 +82,7 @@ public class CommonThreeService extends Service implements UltralightCardListene
                                 isHaveOne = true;
                                 model2.bt_read_card(ConstUtils.BT_READ_CARD, keyType, 0);
                             }
-                      //      Log.i("sss", ">>>>>>>>>>>>>>>>>>>>>>M1");
+                           Log.i("sss", ">>>>>>>>>>>>>>>>>>>>>>M1");
                             Thread.sleep(TIME);
                         }
                         if (idcard) {
@@ -90,7 +90,7 @@ public class CommonThreeService extends Service implements UltralightCardListene
                         }
                     } else if (flag == 2) {//身份证
                         if (idcard) {
-                      //      Log.i("sss", ">>>>>>>>>>>>>>>>>>>>>>身份证");
+                            Log.i("sss", ">>>>>>>>>>>>>>>>>>>>>>身份证");
                             com.decard.entitys.IDCard idCardData;
                             if (!choose) {
                                 //标准协议

@@ -26,6 +26,7 @@ import com.bumptech.glide.request.transition.Transition;
 import com.cmm.rkadcreader.adcNative;
 import com.cmm.rkgpiocontrol.rkGpioControlNative;
 import com.decard.NDKMethod.BasicOper;
+import com.example.administrator.myfacetest.FileUtil;
 import com.example.administrator.myfacetest.MyUtil;
 import com.example.administrator.myfacetest.R;
 import com.example.administrator.myfacetest.RoundImageView;
@@ -44,20 +45,21 @@ import com.example.administrator.myfacetest.usbtest.Utils;
 import com.guo.android_extend.widget.CameraFrameData;
 import com.guo.android_extend.widget.CameraGLSurfaceView;
 import com.guo.android_extend.widget.CameraSurfaceView;
-
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.security.InvalidParameterException;
 import java.util.LinkedList;
 import java.util.Queue;
-
-;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 import yuweifacecheck.YuweiFaceHelper;
 
+/**
+ * 人脸识别页面
+ */
 public class MainActivity extends BaseActivity implements SurfaceHolder.Callback, CameraSurfaceView.OnCameraListener, View.OnTouchListener, Camera.AutoFocusCallback {
     RoundImageView img_server;
     TextView flag_tag;
@@ -125,7 +127,6 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
         startService(new Intent(this, CommonThreeService.class));
         mContext = this;
         initFace();
-        mHelper = YuweiFaceHelper.getInstance(this);
 
         mGLSurfaceView.setOnTouchListener(this);
         mSurfaceView.setOnCameraListener(this);
@@ -145,10 +146,127 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
                     ticketNum = myMessage.getNum().trim();
                 }
                 isRquest = true;
-                upload();
+                //upload();
+                checkFace();
             }
         });
     }
+    ////////////////////////////////////////////////////
+
+    public void checkFace(){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                String filePath = FileUtil.getPath() + File.separator + "123.jpg";
+                doSuccess(filePath);
+                isCheckSuccess = false;
+            }
+        });
+
+    }
+
+    public void doSuccess(String Face_path) {
+        if (!TextUtils.isEmpty(Face_path)) {
+            RequestOptions options = new RequestOptions()
+                    .error(R.drawable.pic_bg)
+                    .skipMemoryCache(true)
+                    .diskCacheStrategy(DiskCacheStrategy.NONE);
+            Glide.with(this)
+                    .asBitmap()
+                    .load(Face_path)
+                    .apply(options)
+                    .into(target);
+        }
+    }
+
+    private SimpleTarget target = new SimpleTarget<Bitmap>() {
+        @Override
+        public void onResourceReady(Bitmap resource, Transition<? super Bitmap> transition) {
+            bitmap = resource;
+            img_server.setImageBitmap(bitmap);
+            idCardHandler.sendEmptyMessage(0);
+
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if(isCheckSuccess){
+                        checkSuccess();
+                    }else {
+                        doFaceError();
+                    }
+                }
+            },4000);
+
+        }
+    };
+
+    private void checkSuccess() {
+        isOpenDoor = true;
+        rkGpioControlNative.ControlGpio(1, 0);//开门
+        SoundPoolUtil.play(4);
+        flag_tag.setText("验证成功");
+        flag_tag.setTextColor(getResources().getColor(R.color.green));
+        uploadFinish();
+    }
+
+    public void doFaceError() {
+        flag_tag.setText("人脸验证失败");
+        flag_tag.setTextColor(getResources().getColor(R.color.red));
+        rkGpioControlNative.ControlGpio(20, 0);//亮灯
+        isLight = true;
+        SoundPoolUtil.play(1);
+        uploadFinish();
+    }
+
+    public void doError() {
+        flag_tag.setText("验证失败");
+        flag_tag.setTextColor(getResources().getColor(R.color.red));
+        rkGpioControlNative.ControlGpio(20, 0);//亮灯
+        isLight = true;
+        SoundPoolUtil.play(3);
+        uploadFinish();
+    }
+
+
+    /**
+     * 0.5秒关门
+     */
+    private void uploadFinish() {
+        if (isOpenDoor) {
+            isOpenDoor = false;
+            handler.postDelayed(runnable, 500);
+        }
+
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                isRquest = false;
+                img_server.setImageResource(R.drawable.pic_bg);
+                flag_tag.setText("");
+                //变灯
+                if (isLight) {
+                    rkGpioControlNative.ControlGpio(20, 1);
+                    isLight = false;
+                }
+            }
+        }, 2500);
+
+    }
+
+    Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+            rkGpioControlNative.ControlGpio(1, 1);//关门
+        }
+    };
+
+
+    ////////////////////////////////////////////////////
+
+
+
+
+
 
     @Override
     protected int getLayoutId() {
@@ -161,7 +279,7 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
         mHelper = YuweiFaceHelper.getInstance(mContext);
         //0 为后置摄像头， 1为前置
         mHelper.detecterInit(0);
-        mHelper.getInstance(this);
+     //   mHelper.getInstance(this);
     }
 
     @Override
@@ -169,6 +287,9 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
         super.onResume();
         onOpenConnectPort();
         idCardHandler = new IDCardHandler();
+
+        //启动人脸识别
+        mYuweiLooper = mHelper.getLooper(idCardHandler);
     }
 
     @Override
@@ -300,11 +421,7 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
         mHelper.addRegisterFace(ticketNum, mAFR_FSDKFace);
         //启动比对
         mHelper.loadInfo();
-        try {
-            mYuweiLooper = mHelper.getLooper(idCardHandler);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
     }
 
     @Override
@@ -324,6 +441,7 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
             closeErWeiMa();
         }
     }
+
 
 
     /**
@@ -381,87 +499,14 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
         }
     }
 
-    public void doFaceError() {
-        flag_tag.setText("人脸验证失败");
-        flag_tag.setTextColor(getResources().getColor(R.color.red));
-        rkGpioControlNative.ControlGpio(20, 0);//亮灯
-        isLight = true;
-        SoundPoolUtil.play(1);
-        uploadFinish();
-    }
 
-    public void doError() {
-        flag_tag.setText("验证失败");
-        flag_tag.setTextColor(getResources().getColor(R.color.red));
-        rkGpioControlNative.ControlGpio(20, 0);//亮灯
-        isLight = true;
-        SoundPoolUtil.play(3);
-        uploadFinish();
-    }
 
-    public void doSuccess(String Face_path) {
-        if (!TextUtils.isEmpty(Face_path)) {
-            RequestOptions options = new RequestOptions()
-                    .error(R.drawable.pic_bg)
-                    .skipMemoryCache(true)
-                    .diskCacheStrategy(DiskCacheStrategy.NONE);
-            Glide.with(this)
-                    .asBitmap()
-                    .load(Face_path)
-                    .apply(options)
-                    .into(target);
-        }
-    }
 
-    private SimpleTarget target = new SimpleTarget<Bitmap>() {
-        @Override
-        public void onResourceReady(Bitmap resource, Transition<? super Bitmap> transition) {
-            bitmap = resource;
-            img_server.setImageBitmap(bitmap);
-            idCardHandler.sendEmptyMessage(0);
-        }
-    };
 
-    private void checkSuccess() {
-        isOpenDoor = true;
-        rkGpioControlNative.ControlGpio(1, 0);//开门
-        SoundPoolUtil.play(4);
-        flag_tag.setText("验证成功");
-        flag_tag.setTextColor(getResources().getColor(R.color.green));
-        uploadFinish();
-    }
 
-    /**
-     * 0.5秒关门
-     */
-    private void uploadFinish() {
-        if (isOpenDoor) {
-            isOpenDoor = false;
-            handler.postDelayed(runnable, 500);
-        }
 
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                isRquest = false;
-                img_server.setImageResource(R.drawable.pic_bg);
-                flag_tag.setText("");
-                //变灯
-                if (isLight) {
-                    rkGpioControlNative.ControlGpio(20, 1);
-                    isLight = false;
-                }
-            }
-        }, 2500);
 
-    }
 
-    Runnable runnable = new Runnable() {
-        @Override
-        public void run() {
-            rkGpioControlNative.ControlGpio(1, 1);//关门
-        }
-    };
 
 
     //打开串口
