@@ -8,13 +8,17 @@
         android:id="@+id/ad"
         android:layout_margin="10dp"
         android:layout_width="match_parent"
-        android:layout_height="450dp"
+        android:layout_height="45dp"
         android:background="@drawable/ad"/>
     <RelativeLayout
         android:id="@+id/ll_pic"
         android:layout_width="match_parent"
         android:layout_height="390dp"
-        android:layout_margin="5dp"
+
+        android:layout_marginLeft="100dp"
+        android:layout_marginRight="100dp"
+        android:layout_marginBottom="5dp"
+        android:layout_marginTop="5dp"
         android:orientation="horizontal">
         <FrameLayout
             android:background="@drawable/pic_bg"
@@ -42,15 +46,16 @@
             android:layout_width="40dp"
             android:layout_centerHorizontal="true"
             android:layout_height="match_parent" />
+
         <com.example.administrator.myfacetest.RoundImageView
             android:id="@+id/img_server"
             android:layout_width="300dp"
             android:layout_height="match_parent"
-            android:scaleType="fitCenter"
-            android:layout_margin="5dp"
-            android:padding="15dp"
             android:layout_alignParentRight="true"
-            android:background="@drawable/pic_bg"/>
+            android:layout_margin="5dp"
+            android:background="@drawable/pic_bg"
+            android:padding="15dp"
+            android:scaleType="fitCenter" />
     </RelativeLayout>
 
     <LinearLayout

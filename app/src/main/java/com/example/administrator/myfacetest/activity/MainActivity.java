@@ -1,7 +1,6 @@
 package com.example.administrator.myfacetest.activity;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -16,16 +15,15 @@ import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.widget.TextView;
-
 import com.arcsoft.facerecognition.AFR_FSDKFace;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.request.target.SimpleTarget;
 import com.bumptech.glide.request.transition.Transition;
-import com.cmm.rkadcreader.adcNative;
 import com.cmm.rkgpiocontrol.rkGpioControlNative;
 import com.decard.NDKMethod.BasicOper;
+import com.example.administrator.myfacetest.FileUtil;
 import com.example.administrator.myfacetest.MyUtil;
 import com.example.administrator.myfacetest.R;
 import com.example.administrator.myfacetest.RoundImageView;
@@ -36,23 +34,12 @@ import com.example.administrator.myfacetest.base.ViewHolder;
 import com.example.administrator.myfacetest.retrofit.Api;
 import com.example.administrator.myfacetest.retrofit.ConnectUrl;
 import com.example.administrator.myfacetest.rx.RxBus;
-import com.example.administrator.myfacetest.service.CommonThreeService;
-import com.example.administrator.myfacetest.usbtest.ComBean;
-import com.example.administrator.myfacetest.usbtest.SPUtils;
-import com.example.administrator.myfacetest.usbtest.SerialHelper;
-import com.example.administrator.myfacetest.usbtest.Utils;
+import com.example.administrator.myfacetest.service.Service2;
 import com.guo.android_extend.widget.CameraFrameData;
 import com.guo.android_extend.widget.CameraGLSurfaceView;
 import com.guo.android_extend.widget.CameraSurfaceView;
-
 import org.json.JSONObject;
-
-import java.io.IOException;
-import java.security.InvalidParameterException;
-import java.util.LinkedList;
-import java.util.Queue;
-
-;
+import java.io.File;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
@@ -64,35 +51,21 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
     boolean isCanRegister = false;
     CameraSurfaceView mSurfaceView;
     CameraGLSurfaceView mGLSurfaceView;
-
     private AFR_FSDKFace mAFR_FSDKFace;
     int mCameraRotate;
-
     YuweiFaceHelper.YuweiCheckLooper mYuweiLooper = null;
     YuweiFaceHelper mHelper;
     private IDCardHandler idCardHandler;
-    private Context mContext;
-
     private Rect src = new Rect();
     private Rect dst = new Rect();
 
     private boolean isRquest = false;
     private int type;
     private String ticketNum;
-    private SPUtils settingSp;
-    private String USB = "";
     private boolean isOpenDoor = false;
     private boolean isLight = false;
 
     private Handler handler = new Handler();
-
-    private boolean uitralight = true;
-    private boolean scan = true;
-    private boolean idcard = false;
-    private boolean isHaveThree = true;
-    //串口
-    SerialControl ComA;
-    DispQueueThread DispQueue;
 
     private Bitmap bitmap;
 
@@ -104,29 +77,7 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
         mSurfaceView = holder.get(R.id.surfaceView);
         mGLSurfaceView = holder.get(R.id.glsurfaceView);
 
-        Intent intent = getIntent();
-        uitralight = intent.getBooleanExtra("uitralight", true);
-        scan = intent.getBooleanExtra("scan", true);
-        idcard = intent.getBooleanExtra("idcard", false);
-        isHaveThree = intent.getBooleanExtra("isHaveThree", true);
-
-        Utils.init(getApplicationContext());
-        settingSp = new SPUtils(getString(R.string.settingSp));
-        USB = settingSp.getString(getString(R.string.usbKey), getString(R.string.androidUsb));
-        rkGpioControlNative.init();
-        //串口
-        ComA = new SerialControl();
-        DispQueue = new DispQueueThread();
-        DispQueue.start();
-        if (scan) {
-            openErWeiMa();
-        }
-
-        startService(new Intent(this, CommonThreeService.class));
-        mContext = this;
         initFace();
-        mHelper = YuweiFaceHelper.getInstance(this);
-
         mGLSurfaceView.setOnTouchListener(this);
         mSurfaceView.setOnCameraListener(this);
         mSurfaceView.setupGLSurafceView(mGLSurfaceView, true, mHelper.getCameraMirror(), mHelper.getCameraRotate());
@@ -139,15 +90,43 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
                 if (type != 2) {
                     BasicOper.dc_beep(5);
                 }
-                if (type == 1) {
-                    ticketNum = myMessage.getNum().trim() + "00";
-                } else {
-                    ticketNum = myMessage.getNum().trim();
-                }
+                ticketNum = myMessage.getNum().trim();
+
                 isRquest = true;
-                upload();
+                Log.i("faceListSize", "faceList = " + mHelper.getRegisterList().size());
+                mHelper.deleteAllFace();
+                Log.i("faceListSize", "faceList = " + mHelper.getRegisterList().size());
+                Log.i("sss",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+           //     upload();
+
+                /////////////////////////////////////////////////////////临时测试
+                String imageStr = FileUtil.getPath() + File.separator +  "xiaohu.png";
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        doSuccess(imageStr);
+                    }
+                });
+
+                isCheckSuccess = false;
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        //   mHelper.deleteName(ticketNum);
+                        if(isCheckSuccess){
+                            checkSuccess();
+                        }else {
+                            doFaceError();
+                        }
+                    }
+                },4000);
+
+                ///////////////////////////////////////////////
             }
         });
+
+//        int memClass = ((ActivityManager)getSystemService(Context.ACTIVITY_SERVICE)).getMemoryClass();
+//        Log.i("sss", "memClass:"+memClass);
     }
 
     @Override
@@ -158,17 +137,17 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
 
     //初始化人脸识别
     private void initFace() {
-        mHelper = YuweiFaceHelper.getInstance(mContext);
+        mHelper = YuweiFaceHelper.getInstance(this);
         //0 为后置摄像头， 1为前置
         mHelper.detecterInit(0);
-        mHelper.getInstance(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        onOpenConnectPort();
         idCardHandler = new IDCardHandler();
+        mYuweiLooper = mHelper.getLooper(idCardHandler);
+        startService(new Intent(this,Service2.class));
     }
 
     @Override
@@ -238,7 +217,7 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
             switch (msg.what) {
                 case 0:
                     isCanRegister = false;
-                    mHelper.deleteAllFace();
+                    Log.i("TAG","bitmapWidth = " + bitmap.getWidth() + "   bitmapHeight= " + bitmap.getHeight());
                     src.set(0, 0, bitmap.getWidth(), bitmap.getHeight());
                     mHelper.startRegisterThread(bitmap, idCardHandler, src, dst);
                     Log.i("TAG", "已启动注册");
@@ -249,7 +228,6 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
                     if (msg.arg1 == YuweiFaceHelper.MSG_EVENT_REG) {
                         isCanRegister = true;
                         mAFR_FSDKFace = (AFR_FSDKFace) msg.obj;
-
                             //调用人脸识别
                             startDetecter();
                     } else if (msg.arg1 == YuweiFaceHelper.MSG_EVENT_NO_FEATURE) {
@@ -265,15 +243,14 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
 
                 case YuweiFaceHelper.CHECK_FACE_SUCCESS:
                     try {
-                        //   mHandler.removeCallbacks(hide);
+
                         Bundle bundle = msg.getData();
                         float max_score = bundle.getFloat(YuweiFaceHelper.MAX_SCORE);
                         String showName = bundle.getString(YuweiFaceHelper.SHOW_NAME);
                         Bitmap showBitmap = bundle.getParcelable(YuweiFaceHelper.SHOW_BITMAP);
                         Log.i("xxx", "max_score = " + max_score);
                         Log.i("xxx", "置信度：" + (float) ((int) (max_score * 1000)) / 1000.0);
-                       isCheckSuccess = true;
-
+                        isCheckSuccess = true;
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -300,29 +277,19 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
         mHelper.addRegisterFace(ticketNum, mAFR_FSDKFace);
         //启动比对
         mHelper.loadInfo();
-        try {
-            mYuweiLooper = mHelper.getLooper(idCardHandler);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        onDisConnectPort();
+        mYuweiLooper.shutdown();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        stopService(new Intent(this, CommonThreeService.class));
-        adcNative.close(0);
-        adcNative.close(2);
-        rkGpioControlNative.close();
-        if (scan) {
-            closeErWeiMa();
-        }
+        stopService(new Intent(this, Service2.class));
     }
 
 
@@ -348,21 +315,19 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
                                    handler.postDelayed(new Runnable() {
                                        @Override
                                        public void run() {
-                                           mHelper.deleteName(ticketNum);
+                                        //   mHelper.deleteName(ticketNum);
                                          if(isCheckSuccess){
                                              checkSuccess();
                                          }else {
                                              doFaceError();
                                          }
-
                                        }
-                                   },4000);
+                                   },3000);
                                }
                            }, new Action1<Throwable>() {
                                @Override
                                public void call(Throwable throwable) {
                                    doError();
-
                                }
                            }
                 );
@@ -464,87 +429,8 @@ public class MainActivity extends BaseActivity implements SurfaceHolder.Callback
     };
 
 
-    //打开串口
-    public void openErWeiMa() {
-        ComA.setPort("/dev/ttyS4");
-        ComA.setBaudRate("115200");
-        OpenComPort(ComA);
-    }
 
-    private void OpenComPort(SerialHelper ComPort) {
-        try {
-            ComPort.open();
-        } catch (SecurityException e) {
-            Log.i("xxx", "SecurityException" + e.toString());
-        } catch (IOException e) {
-            Log.i("xxx", "IOException" + e.toString());
-        } catch (InvalidParameterException e) {
-            Log.i("xxx", "InvalidParameterException" + e.toString());
-        }
-    }
 
-    public void closeErWeiMa() {
-        CloseComPort(ComA);
-    }
 
-    private void CloseComPort(SerialHelper ComPort) {
-        if (ComPort != null) {
-            ComPort.stopSend();
-            ComPort.close();
-        }
-    }
-
-    //打开设备
-    public void onOpenConnectPort() {
-        BasicOper.dc_AUSB_ReqPermission(this);
-        int portSate = BasicOper.dc_open(USB, this, "", 0);
-        if (portSate >= 0) {
-            BasicOper.dc_beep(5);
-        }
-    }
-
-    //关闭设备
-    public void onDisConnectPort() {
-        BasicOper.dc_exit();
-    }
-
-    private class SerialControl extends SerialHelper {
-
-        public SerialControl() {
-        }
-
-        @Override
-        protected void onDataReceived(final ComBean ComRecData) {
-            DispQueue.AddQueue(ComRecData);
-        }
-    }
-
-    private class DispQueueThread extends Thread {
-        private Queue<ComBean> QueueList = new LinkedList<ComBean>();
-
-        @Override
-        public void run() {
-            super.run();
-            while (!isInterrupted()) {
-                final ComBean ComData;
-                while ((ComData = QueueList.poll()) != null) {
-                    try {
-                        ticketNum = new String(ComData.bRec).trim();
-                        Ticket ticket = new Ticket(2, ticketNum);
-                        RxBus.getDefault().post(ticket);
-                        Log.i("sss", ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + ticketNum);
-                        Thread.sleep(800);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    break;
-                }
-            }
-        }
-
-        public synchronized void AddQueue(ComBean ComData) {
-            QueueList.add(ComData);
-        }
-    }
 
 }
